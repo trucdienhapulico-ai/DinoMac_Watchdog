@@ -4,55 +4,99 @@ import requests
 from dotenv import load_dotenv
 from datetime import datetime
 
-# Tải cấu hình từ .env
+# Load configuration from .env
 load_dotenv()
-
-# Cấu hình danh sách thiết bị CẦN GIÁM SÁT TẠI SÂN GOLF (Qua Tailscale)
-NODES_TO_WATCH = [
-    {"name": "Synology NAS (Database Hub)", "ip": "onecloud.tail030e1.ts.net"},
-    {"name": "Máy tính Master (Luôn bật)",  "ip": "master-pc.tail030e1.ts.net"} # <--- Sếp thay IP master nếu cần
-]
-
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 
-def send_alert(message):
-    if not TELEGRAM_TOKEN or not CHAT_ID: return
-    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-    payload = {"chat_id": CHAT_ID, "text": f"🚨 [WATCHDOG - BÁO ĐỘNG NGOẠI TUYẾN]\n\n{message}"}
-    try: requests.post(url, json=payload, timeout=10)
-    except: pass
+# --- MONITORING CONFIGURATION ---
+# type: "ping" for hardware, "rpc" for blockchain/api
+WATCH_LIST = [
+    {"name": "Synology NAS (Sân Golf)", "id": "NAS", "ip": "onecloud.tail030e1.ts.net", "type": "ping"},
+    {"name": "Master PC (Sân Golf)",    "id": "PC",  "ip": "master-pc.tail030e1.ts.net", "type": "ping"},
+    # Future Blockchain node example:
+    # {"name": "Ethereum Node", "id": "ETH", "rpc": "http://localhost:8545", "type": "rpc"}
+]
 
-def check_ping(ip):
-    # Ping 1 lần, chờ tối đa 2 giây
-    param = "-n 1 -w 2000" if os.name == 'nt' else "-c 1 -W 2"
-    response = os.system(f"ping {param} {ip}")
-    return response == 0
+class DinoWatchdog:
+    def __init__(self):
+        self.fails = {node['id']: 0 for node in WATCH_LIST}
+        self.last_heights = {}
 
-print(f"[{datetime.now().strftime('%H:%M:%S')}] Đang khởi động Đặc vụ Gác cổng (Watchdog)...")
-print("Lưu ý: Công cụ này đang chạy NGOÀI Sân Golf để giám sát Internet.")
+    def log(self, text):
+        print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {text}")
 
-# Theo dõi số lần mất kết nối liên tiếp
-fail_counters = {node['ip']: 0 for node in NODES_TO_WATCH}
-
-while True:
-    for node in NODES_TO_WATCH:
-        ip = node['ip']
-        name = node['name']
+    def notify(self, status, name, msg):
+        emoji = "🔴" if status == "CRITICAL" else "🟢"
+        full_msg = f"{emoji} [DinoMac Watchdog - {status}]\n\n📌 Mục tiêu: {name}\n📝 Thông báo: {msg}\n⏰ Lúc: {datetime.now().strftime('%H:%M:%S')}"
         
-        is_alive = check_ping(ip)
-        
-        if not is_alive:
-            fail_counters[ip] += 1
-            print(f"[{datetime.now().strftime('%H:%M:%S')}] 🔴 Cảnh báo: {name} ({ip}) Mất kết nối lần {fail_counters[ip]}")
-        else:
-            if fail_counters[ip] > 0:
-                print(f"[{datetime.now().strftime('%H:%M:%S')}] 🟢 {name} Đã trực tuyến trở lại.")
-                fail_counters[ip] = 0
-        
-        # Ngưỡng báo động: Nếu mất mạng 3 lần liên tiếp (khoảng 15 phút)
-        if fail_counters[ip] == 3:
-            msg = f"THIẾT BỊ TẠI SÂN GOLF MẤT KẾT NỐI!\nTên: {name}\nĐịa chỉ: {ip}\nTrạng thái: OFFLINE (Internet có thể đã bị ngắt)."
-            send_alert(msg)
+        if not TELEGRAM_TOKEN or not CHAT_ID:
+            self.log("Lỗi: Chưa cấu hình TELEGRAM_BOT_TOKEN hoặc TELEGRAM_CHAT_ID trong .env")
+            return
             
-    time.sleep(300) # 5 phút kiểm tra lại một lần
+        url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+        try:
+            requests.post(url, json={"chat_id": CHAT_ID, "text": full_msg}, timeout=10)
+        except Exception as e:
+            self.log(f"Lỗi gửi Telegram: {e}")
+
+    def check_ping(self, ip):
+        # Universal ping command
+        param = "-n 1 -w 2000" if os.name == 'nt' else "-c 1 -W 2"
+        # Silence output
+        quiet = "> NUL 2>&1" if os.name == 'nt' else "> /dev/null 2>&1"
+        return os.system(f"ping {param} {ip} {quiet}") == 0
+
+    def check_rpc(self, node):
+        # Optional: Placeholder for blockchain RPC checks
+        try:
+            payload = {"jsonrpc": "2.0", "method": "eth_blockNumber", "params": [], "id": 1}
+            r = requests.post(node['rpc'], json=payload, timeout=5)
+            if r.status_code == 200:
+                result = r.json().get('result')
+                return int(result, 16) if isinstance(result, str) else result
+        except:
+            return None
+
+    def start(self):
+        self.log("🚀 DinoMac Watchdog Pro started. Monitoring Golf Course via Tailscale...")
+        self.log("Mode: EXTERNAL (Running on VPS/Home to monitor Sân Golf)")
+        
+        while True:
+            for node in WATCH_LIST:
+                nid = node['id']
+                name = node['name']
+                
+                is_alive = False
+                if node['type'] == "ping":
+                    is_alive = self.check_ping(node['ip'])
+                elif node['type'] == "rpc":
+                    res = self.check_rpc(node)
+                    is_alive = res is not None
+                
+                if not is_alive:
+                    self.fails[nid] += 1
+                    self.log(f"🔴 Fail: {name} (Attempt {self.fails[nid]})")
+                    
+                    # Alert at exactly 3 fails (~15 mins)
+                    if self.fails[nid] == 3:
+                        msg = "Thiết bị Offline. Internet Sân Golf có thể đã bị ngắt hoặc thiết bị mất điện."
+                        self.notify("CRITICAL", name, msg)
+                else:
+                    # If it was down but now back up
+                    if self.fails[nid] >= 3:
+                        self.notify("RECOVERED", name, "Thiết bị đã trực tuyến trở lại.")
+                    
+                    if self.fails[nid] > 0:
+                        self.log(f"🟢 OK: {name} is back.")
+                        
+                    self.fails[nid] = 0
+            
+            time.sleep(300) # Wait 5 minutes
+
+if __name__ == "__main__":
+    try:
+        Watchdog = DinoWatchdog()
+        Watchdog.start()
+    except KeyboardInterrupt:
+        print("\nStopping Watchdog...")
