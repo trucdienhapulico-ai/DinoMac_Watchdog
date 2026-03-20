@@ -12,7 +12,7 @@ CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 # --- MONITORING CONFIGURATION ---
 WATCH_LIST = [
     {"name": "Synology NAS (Sân Golf)", "id": "NAS", "ip": "onecloud.tail030e1.ts.net", "type": "ping"},
-    {"name": "Master PC (Sân Golf)",    "id": "PC",  "ip": "master-pc.tail030e1.ts.net", "type": "ping"},
+    {"name": "chieusang.montanagc.com.vn",    "id": "PC",  "ip": "chieusang.montanagc.com.vn", "type": "ping"},
 ]
 
 class DinoWatchdog:
