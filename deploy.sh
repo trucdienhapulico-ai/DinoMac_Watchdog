@@ -1,36 +1,19 @@
 #!/bin/bash
 
-# DinoMac Watchdog - Super Pro Deployment Script (WSL/VPS)
-echo "------------------------------------------------"
-echo "🚀 Đang triển khai DinoMac Watchdog Super Pro..."
-echo "------------------------------------------------"
+# --- DinoMac Watchdog Auto-Deploy Script ---
+echo "🚀 Đang bắt đầu cài đặt Đặc vụ Gác cổng..."
 
-# 1. Cài đặt Tailscale (Nếu chưa có)
-if ! command -v tailscale &> /dev/null
-then
-    echo "⚠️  Chưa tìm thấy Tailscale. Đang tiến hành cài đặt..."
-    curl -fsSL https://tailscale.com/install.sh | sh
-    sudo tailscale up --accept-dns=false
-else
-    echo "✅ Tailscale đã được cài đặt."
-fi
+# 1. Cập nhật hệ thống và cài đặt Python Venv
+echo "📦 Cài đặt các thư viện hệ thống..."
+sudo apt-get update
+sudo apt-get install -y python3-venv python3-pip
 
-# 2. Cập nhật hệ thống
-sudo apt update && sudo apt install -y python3-pip python3-venv git
-
-# 3. Setup Virtual Environment
-cd ~/DinoMac_Watchdog
+# 2. Tạo môi trường ảo (Virtual Environment)
+echo "🐍 Khởi tạo môi trường ảo Python..."
 python3 -m venv venv
-source venv/bin/activate
-pip install requests python-dotenv
 
-# 4. Kiểm tra .env
-if [ ! -f .env ]; then
-    cp .env.example .env
-    echo "📢 Đã tạo file .env. Sếp hãy sửa file này bằng lệnh: nano .env"
-fi
+# 3. Cài đặt các thư viện cần thiết
+echo "🛠️ Cài đặt thư viện: requests, python-dotenv..."
+./venv/bin/pip install requests python-dotenv
 
-echo "------------------------------------------------"
-echo "✅ Hoàn tất cài đặt!"
-echo "➡️  Để chạy ngầm: nohup ./venv/bin/python watchdog.py > watchdog.log 2>&1 &"
-echo "------------------------------------------------"
+echo "✅ Cài đặt hoàn tất! Đặc vụ đã sẵn sàng chiến đấu."

@@ -8,15 +8,15 @@ Dành cho sếp khi vừa thuê VPS mới (Ubuntu/Debian) hoặc WSL chạy 1 ph
 
 ```bash
 # ----- SAO CHÉP TOÀN BỘ KHỐI LỆNH DƯỚI ĐÂY -----
-# 1. Tải về và cấu hình Token Telegram
-git clone https://github.com/trucdienhapulico-ai/DinoMac_Watchdog.git && cd DinoMac_Watchdog && \
+# 1. Quay về thư mục Safe (tránh lỗi Permission denied) và tải về
+cd ~ && git clone https://github.com/trucdienhapulico-ai/DinoMac_Watchdog.git && cd DinoMac_Watchdog && \
 sudo cat <<EOF > .env
 TELEGRAM_BOT_TOKEN="8309852170:AAFPaUp_wRGBt-xick-zzDokUfNAZ_wSGHI"
 TELEGRAM_CHAT_ID="293490789"
 EOF
 
 # 2. Cài đặt tự động & Chạy ngầm vĩnh viễn
-sudo chmod +x deploy.sh && sudo ./deploy.sh && \
+sudo chmod +x deploy.sh && ./deploy.sh && \
 sudo nohup ./venv/bin/python watchdog.py > watchdog.log 2>&1 &
 
 # 3. Kiểm tra nhật ký xem Đặc vụ đã Online chưa
