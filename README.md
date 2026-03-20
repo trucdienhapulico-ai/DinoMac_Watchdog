@@ -11,18 +11,22 @@
 ## ⚠️ LƯU Ý QUAN TRỌNG:
 Công cụ này **KHÔNG CÀI Ở SÂN GOLF**. Sếp phải cài nó ở một máy tính luôn có mạng tại nhà sếp, hoặc trên VPS ảo.
 
-## 🛠️ Hướng dẫn triển khai lên VPS:
+## 🛠️ Hướng dẫn triển khai (WSL / VPS):
 
-1. **Chuẩn bị:** Đăng ký VPS (Khuyên dùng Oracle Cloud Always Free - 24GB RAM).
-2. **Cài đặt:** 
-   - Tải file `deploy.sh` lên VPS hoặc clone repo này về.
-   - Cấp quyền: `chmod +x deploy.sh`
-   - Chạy script: `./deploy.sh`
-3. **Cấu hình:** Sửa file `.env` điền `TELEGRAM_BOT_TOKEN` và `TELEGRAM_CHAT_ID`.
-4. **Kích hoạt:** 
+1. **Setup:** 
    ```bash
-   sudo systemctl start watchdog
+   chmod +x deploy.sh
+   ./deploy.sh
    ```
+2. **Cấu hình:** Sửa file `.env` điền Token Telegram.
+3. **Chạy ngầm (Vĩnh viễn):**
+   Để Watchdog chạy vĩnh viễn ngay cả khi sếp tắt cửa sổ Terminal, hãy dùng lệnh:
+   ```bash
+   nohup ./venv/bin/python watchdog.py > watchdog.log 2>&1 &
+   ```
+4. **Quản lý:**
+   - Xem log: `tail -f watchdog.log`
+   - Dừng lại: `pkill -f watchdog.py`
 
 ## Cách hoạt động:
 1. Định kỳ 5 phút quét (Ping) IP Tailscale của các thiết bị tại Sân Golf.
