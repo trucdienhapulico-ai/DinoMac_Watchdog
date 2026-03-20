@@ -2,6 +2,7 @@ import socket
 import os
 import time
 import requests
+import threading
 from dotenv import load_dotenv
 from datetime import datetime
 
@@ -13,7 +14,6 @@ CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 def get_local_info():
     try:
         hostname = socket.gethostname()
-        # Lấy IP local một cách thông minh hơn
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.connect(("8.8.8.8", 80))
         local_ip = s.getsockname()[0]
@@ -32,6 +32,7 @@ class DinoWatchdog:
     def __init__(self):
         self.fails = {node['id']: 0 for node in WATCH_LIST}
         self.hostname, self.local_ip = get_local_info()
+        self.last_update_id = 0
 
     def log(self, text):
         print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {text}")
@@ -39,6 +40,7 @@ class DinoWatchdog:
     def notify(self, status, name, msg):
         emoji = "🔴" if status == "CRITICAL" else "🟢"
         if status == "ONLINE": emoji = "🚀"
+        if status == "RESPONSE": emoji = "💬"
         
         full_msg = (
             f"{emoji} [DinoMac Watchdog - {status}]\n\n"
@@ -50,10 +52,7 @@ class DinoWatchdog:
             f"🌐 IP Watchdog: {self.local_ip}"
         )
         
-        if not TELEGRAM_TOKEN or not CHAT_ID:
-            self.log("⚠️ Cảnh báo: Chưa cấu hình Token Telegram trong .env")
-            return
-            
+        if not TELEGRAM_TOKEN or not CHAT_ID: return
         url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
         try:
             requests.post(url, json={"chat_id": CHAT_ID, "text": full_msg}, timeout=10)
@@ -65,6 +64,14 @@ class DinoWatchdog:
         quiet = "> NUL 2>&1" if os.name == 'nt' else "> /dev/null 2>&1"
         return os.system(f"ping {param} {ip} {quiet}") == 0
 
+    def get_full_status(self):
+        reports = []
+        for node in WATCH_LIST:
+            alive = self.check_ping(node['ip'])
+            status_emoji = "✅ ONLINE" if alive else "❌ OFFLINE"
+            reports.append(f"{node['name']}: {status_emoji}")
+        return "\n".join(reports)
+
     def initial_check(self):
         self.log("-" * 60)
         self.log("📋 TRẠNG THÁI GIÁM SÁT BAN ĐẦU:")
@@ -74,6 +81,33 @@ class DinoWatchdog:
             self.log(f"   {status_str:7} | {node['name']} ({node['ip']})")
         self.log("-" * 60)
 
+    def listen_commands(self):
+        """Luồng lắng nghe lệnh từ Telegram (Interactive Mode)"""
+        url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/getUpdates"
+        self.log("💬 Luồng lắng nghe Telegram đã bắt đầu...")
+        
+        while True:
+            try:
+                params = {"offset": self.last_update_id + 1, "timeout": 30}
+                response = requests.get(url, params=params, timeout=35).json()
+                
+                if response.get("ok") and response.get("result"):
+                    for update in response["result"]:
+                        self.last_update_id = update["update_id"]
+                        if "message" in update and "text" in update["message"]:
+                            msg_text = update["message"]["text"].lower()
+                            from_id = str(update["message"]["chat"]["id"])
+                            
+                            # Chỉ phản hồi nếu đúng là sếp nhắn
+                            if from_id == str(CHAT_ID):
+                                if msg_text == "/ping":
+                                    self.notify("RESPONSE", "Báo cáo nội bộ", "Pong! Đặc vụ vẫn đang gác cửa Sân Golf sếp ơi! 🫡")
+                                elif msg_text == "/status":
+                                    current_status = self.get_full_status()
+                                    self.notify("RESPONSE", "Báo cáo hiện trạng", f"Trạng thái thiết bị tại Sân Golf:\n\n{current_status}")
+            except Exception as e:
+                time.sleep(10) # Tránh lặp lỗi quá nhanh
+
     def start(self):
         self.log(f"🚀 Khởi động DinoMac Watchdog Pro trên {self.hostname} ({self.local_ip})...")
         
@@ -82,12 +116,10 @@ class DinoWatchdog:
         self.notify("ONLINE", "Hệ thống Watchdog", location_info)
         self.log("🟢 Đã gửi lời chào khởi động tới Telegram!")
 
-        # Kiểm tra trạng thái tức thì
-        self.initial_check()
-        self.log("🔔 Sẽ bắt đầu vòng lặp giám sát sau 5 phút...")
-        
+        # Khởi động luồng lắng nghe riêng biệt
+        threading.Thread(target=self.listen_commands, daemon=True).start()
+
         while True:
-            time.sleep(300) # Mỗi 5 phút check 1 lần
             for node in WATCH_LIST:
                 nid = node['id']
                 alive = self.check_ping(node['ip'])
@@ -102,6 +134,7 @@ class DinoWatchdog:
                     if self.fails[nid] >= 3:
                         self.notify("RECOVERED", node['name'], "Thiết bị đã trực tuyến trở lại.")
                     self.fails[nid] = 0
+            time.sleep(300)
 
 if __name__ == "__main__":
     try:
