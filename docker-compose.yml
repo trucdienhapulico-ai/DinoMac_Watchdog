@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  watchdog:
+    build: .
+    container_name: dinomac_watchdog
+    restart: always
+    volumes:
+      - ./.env:/app/.env
+    # Essential for ping to work correctly inside some docker environments
+    network_mode: "host" 
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
