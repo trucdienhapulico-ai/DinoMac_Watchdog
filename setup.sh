@@ -7,11 +7,18 @@ cd DinoMac_Watchdog
 apt-get install -y python3-venv python3-pip 2>/dev/null
 python3 -m venv venv
 ./venv/bin/pip install requests python-dotenv
-printf 'TELEGRAM_BOT_TOKEN=""\nTELEGRAM_CHAT_ID=""' > .env
 echo ""
-echo "✅ Cài đặt hoàn tất v3.2.1!"
-echo "👉 Bước tiếp theo: Điền Token và Chat ID vào file .env"
-echo "   nano ~/DinoMac_Watchdog/.env"
+echo "✅ Cài đặt môi trường hoàn tất!"
 echo ""
-echo "   Sau khi điền xong, chạy lệnh:"
-echo "   cd ~/DinoMac_Watchdog && nohup ./venv/bin/python3 watchdog.py > watchdog.log 2>&1 &"
+echo "🔐 Cấu hình Telegram (Nhập lần lượt):"
+read -p "   Nhập TELEGRAM_BOT_TOKEN: " bot_token
+read -p "   Nhập TELEGRAM_CHAT_ID:   " chat_id
+printf "TELEGRAM_BOT_TOKEN=\"%s\"\nTELEGRAM_CHAT_ID=\"%s\"" "$bot_token" "$chat_id" > .env
+echo ""
+echo "✅ Đã lưu cấu hình vào .env"
+echo "🚀 Đang khởi động Đặc vụ Gác cổng v3.2.1..."
+nohup ./venv/bin/python3 watchdog.py > watchdog.log 2>&1 &
+sleep 3
+tail -20 watchdog.log
+echo ""
+echo "🎉 Đặc vụ đã Online! Gõ /ping trên Telegram để kiểm tra."
