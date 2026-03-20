@@ -1,4 +1,4 @@
-# DinoMac Watchdog - Đặc vụ Gác Cổng (Giám sát Internet Sân Golf)
+# DinoMac Watchdog (v3.2.0) - Đặc vụ Gác Cổng Sân Golf
 
 Đây là công cụ cứu cánh cuối cùng giúp sếp biết được khi nào mạng Internet ở Sân Golf bị sập hoàn toàn (khiến các Đặc vụ AI khác mất liên lạc).
 

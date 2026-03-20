@@ -6,6 +6,10 @@ import threading
 from dotenv import load_dotenv
 from datetime import datetime
 
+# --- DinoMac Watchdog Configuration ---
+VERSION = "3.2.0 (Interactive Mode)"
+# --------------------------------------
+
 # Load configuration from .env
 load_dotenv()
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
@@ -109,10 +113,11 @@ class DinoWatchdog:
                 time.sleep(10) # Tránh lặp lỗi quá nhanh
 
     def start(self):
-        self.log(f"🚀 Khởi động DinoMac Watchdog Pro trên {self.hostname} ({self.local_ip})...")
+        self.log(f"🚀 Khởi động DinoMac Watchdog Pro v{VERSION}")
+        self.log(f"📍 Chạy trên: {self.hostname} ({self.local_ip})")
         
         # Bắn tin chào hỏi tới Telegram
-        location_info = f"Đặc vụ Gác cổng đã trực tuyến tại {self.hostname} ({self.local_ip}). Bắt đầu giám sát Sân Golf."
+        location_info = f"Đặc vụ Gác cổng đã trực tuyến tại {self.hostname} ({self.local_ip}). Bắt đầu giám sát Sân Golf.\nPhiên bản: {VERSION}"
         self.notify("ONLINE", "Hệ thống Watchdog", location_info)
         self.log("🟢 Đã gửi lời chào khởi động tới Telegram!")
 
