@@ -29,7 +29,7 @@ def get_local_info():
 # --- MONITORING CONFIGURATION ---
 WATCH_LIST = [
     {"name": "Synology NAS (Sân Golf)", "id": "NAS", "ip": "onecloud.tail030e1.ts.net", "type": "ping"},
-    {"name": "chieusang.montanagc.com.vn",    "id": "PC",  "ip": "chieusang.montanagc.com.vn", "type": "ping"},
+    {"name": "Chiếu sáng Sân Golf",     "id": "CS",  "ip": "chieusang.montanagc.com.vn", "type": "http", "port": 81},
 ]
 
 class DinoWatchdog:
@@ -68,10 +68,24 @@ class DinoWatchdog:
         quiet = "> NUL 2>&1" if os.name == 'nt' else "> /dev/null 2>&1"
         return os.system(f"ping {param} {ip} {quiet}") == 0
 
+    def check_http(self, ip, port=80):
+        """Kiểm tra dịch vụ web trên cổng cụ thể (dành cho server chặn Ping)"""
+        try:
+            r = requests.get(f"http://{ip}:{port}", timeout=5)
+            return r.status_code < 500
+        except:
+            return False
+
+    def check_node(self, node):
+        """Tự động chọn phương thức kiểm tra phù hợp"""
+        if node.get("type") == "http":
+            return self.check_http(node['ip'], node.get('port', 80))
+        return self.check_ping(node['ip'])
+
     def get_full_status(self):
         reports = []
         for node in WATCH_LIST:
-            alive = self.check_ping(node['ip'])
+            alive = self.check_node(node)
             status_emoji = "✅ ONLINE" if alive else "❌ OFFLINE"
             reports.append(f"{node['name']}: {status_emoji}")
         return "\n".join(reports)
@@ -127,7 +141,7 @@ class DinoWatchdog:
         while True:
             for node in WATCH_LIST:
                 nid = node['id']
-                alive = self.check_ping(node['ip'])
+                alive = self.check_node(node)
                 
                 if not alive:
                     self.fails[nid] += 1
