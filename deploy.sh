@@ -3,9 +3,8 @@
 # --- DinoMac Watchdog Auto-Deploy Script ---
 echo "🚀 Đang bắt đầu cài đặt Đặc vụ Gác cổng..."
 
-# 1. Cập nhật hệ thống và cài đặt Python Venv
-echo "📦 Cài đặt các thư viện hệ thống..."
-sudo apt-get update
+# 1. Cài đặt các thư viện hệ thống cần thiết (Bỏ qua Update để nhanh hơn)
+echo "📦 Cài đặt thư viện: python3-venv..."
 sudo apt-get install -y python3-venv python3-pip
 
 # 2. Tạo môi trường ảo (Virtual Environment)
