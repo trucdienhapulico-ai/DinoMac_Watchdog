@@ -2,28 +2,26 @@
 
 Đây là công cụ cứu cánh cuối cùng giúp sếp biết được khi nào mạng Internet ở Sân Golf bị sập hoàn toàn (khiến các Đặc vụ AI khác mất liên lạc).
 
-## ⚡ Cài đặt nhanh (Quick Install - Copy & Paste):
+## ⚡ Cài đặt nhanh (Quick Install - Sudo Copy & Paste):
 
-Dành cho sếp khi vừa thuê VPS mới (Ubuntu/Debian) hoặc WSL chạy 1 phát sướng luôn:
+Dành cho sếp khi vừa thuê VPS mới (Ubuntu/Debian) hoặc WSL chạy 1 phát sướng luôn (với quyền quản trị `sudo` cao nhất):
 
 ```bash
-# 1. Tải về (Clone)
-git clone https://github.com/trucdienhapulico-ai/DinoMac_Watchdog.git && cd DinoMac_Watchdog
-
-# 2. Cấu hình nhanh (Thay Token và ID của sếp vào đây)
-cat <<EOF > .env
+# ----- SAO CHÉP TOÀN BỘ KHỐI LỆNH DƯỚI ĐÂY -----
+# 1. Tải về và cấu hình Token Telegram
+git clone https://github.com/trucdienhapulico-ai/DinoMac_Watchdog.git && cd DinoMac_Watchdog && \
+sudo cat <<EOF > .env
 TELEGRAM_BOT_TOKEN="8309852170:AAFPaUp_wRGBt-xick-zzDokUfNAZ_wSGHI"
 TELEGRAM_CHAT_ID="293490789"
 EOF
 
-# 3. Chạy lệnh cài đặt tự động (Cài python/venv/deps)
-chmod +x deploy.sh && ./deploy.sh
+# 2. Cài đặt tự động & Chạy ngầm vĩnh viễn
+sudo chmod +x deploy.sh && sudo ./deploy.sh && \
+sudo nohup ./venv/bin/python watchdog.py > watchdog.log 2>&1 &
 
-# 4. Chạy Đặc vụ ở chế độ nền (Nohup - Chạy vĩnh viễn)
-nohup ./venv/bin/python watchdog.py > watchdog.log 2>&1 &
-
-# 5. Kiểm tra log ngay lập tức
+# 3. Kiểm tra nhật ký xem Đặc vụ đã Online chưa
 tail -f watchdog.log
+# -----------------------------------------------
 ```
 
 ## 🚀 Tính năng mới (Bản Pro V2):
