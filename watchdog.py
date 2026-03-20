@@ -1,3 +1,4 @@
+import socket
 import os
 import time
 import requests
@@ -9,6 +10,18 @@ load_dotenv()
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 
+def get_local_info():
+    try:
+        hostname = socket.gethostname()
+        # Lấy IP local một cách thông minh hơn
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        local_ip = s.getsockname()[0]
+        s.close()
+        return hostname, local_ip
+    except:
+        return socket.gethostname(), "Unknown IP"
+
 # --- MONITORING CONFIGURATION ---
 WATCH_LIST = [
     {"name": "Synology NAS (Sân Golf)", "id": "NAS", "ip": "onecloud.tail030e1.ts.net", "type": "ping"},
@@ -18,6 +31,7 @@ WATCH_LIST = [
 class DinoWatchdog:
     def __init__(self):
         self.fails = {node['id']: 0 for node in WATCH_LIST}
+        self.hostname, self.local_ip = get_local_info()
 
     def log(self, text):
         print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {text}")
@@ -26,7 +40,15 @@ class DinoWatchdog:
         emoji = "🔴" if status == "CRITICAL" else "🟢"
         if status == "ONLINE": emoji = "🚀"
         
-        full_msg = f"{emoji} [DinoMac Watchdog - {status}]\n\n📌 Mục tiêu: {name}\n📝 Thông báo: {msg}\n⏰ Lúc: {datetime.now().strftime('%H:%M:%S')}"
+        full_msg = (
+            f"{emoji} [DinoMac Watchdog - {status}]\n\n"
+            f"📌 Mục tiêu: {name}\n"
+            f"📝 Thông báo: {msg}\n"
+            f"⏰ Lúc: {datetime.now().strftime('%H:%M:%S')}\n"
+            f"---------------------------\n"
+            f"📍 Gửi từ: {self.hostname}\n"
+            f"🌐 IP Watchdog: {self.local_ip}"
+        )
         
         if not TELEGRAM_TOKEN or not CHAT_ID:
             self.log("⚠️ Cảnh báo: Chưa cấu hình Token Telegram trong .env")
@@ -53,10 +75,11 @@ class DinoWatchdog:
         self.log("-" * 60)
 
     def start(self):
-        self.log(f"🚀 Khởi động DinoMac Watchdog Pro (Super V2)...")
+        self.log(f"🚀 Khởi động DinoMac Watchdog Pro trên {self.hostname} ({self.local_ip})...")
         
         # Bắn tin chào hỏi tới Telegram
-        self.notify("ONLINE", "Hệ thống Watchdog (WSL/VPS)", "Đặc vụ Gác cổng đã trực tuyến và bắt đầu giám sát Sân Golf.")
+        location_info = f"Đặc vụ Gác cổng đã trực tuyến tại {self.hostname} ({self.local_ip}). Bắt đầu giám sát Sân Golf."
+        self.notify("ONLINE", "Hệ thống Watchdog", location_info)
         self.log("🟢 Đã gửi lời chào khởi động tới Telegram!")
 
         # Kiểm tra trạng thái tức thì
